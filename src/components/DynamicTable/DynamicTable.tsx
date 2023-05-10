@@ -70,7 +70,7 @@ interface Partidas {
   PUCostoUSD: number;
   PUMX: number;
   PUUSD: number;
-  PrecioSinPromoción: number;
+  PrecioSinPromocion: number;
   Promocion: boolean;
   Proveedor: string;
   SubTotalMN: number;
@@ -85,7 +85,7 @@ interface ExtendedGridRowModel extends Proyecto {
   isNew?: boolean;
 }
 
-
+type ExtendedPartidas = Partidas & { isNew?: boolean };
 
 interface EditToolbarProps {
   setRows: (newRows: (oldRows: GridRowsProp) => GridRowsProp) => void;
@@ -94,10 +94,58 @@ interface EditToolbarProps {
   ) => void;
   partidas: any;
   projectId: string;
+  setPartidasData: any;
+  partidasData: any;
 }
 
 function EditToolbar(props: EditToolbarProps) {
-  const { setRows, setRowModesModel, projectId, partidas } = props;
+  const { setRows, setRowModesModel, projectId, partidas, partidasData, setPartidasData } =
+    props;
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  async function fetchData() {
+    const db = getFirestore();
+    const projectPartidasCollection = collection(
+      db,
+      "Proyectos",
+      projectId,
+      "Partidas"
+    );
+
+    const querySnapshot = await getDocs(projectPartidasCollection);
+    const partidas = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+
+      return {
+        id: doc.id,
+        Id: data.Id,
+        Cantidad: data.Cantidad,
+        CostoEnvio: data.CostoEnvio,
+        CostoImporte: data.CostoImporte,
+        CostoImporteUSD: data.CostoImporteUSD,
+        FechaTermino: data.FechaTermino,
+        NumeroDeParte: data.NumeroDeParte,
+        PUCostoMX: data.PUCostoMX,
+        PUCostoUSD: data.PUCostoUSD,
+        PUMX: data.PUMX,
+        PUUSD: data.PUUSD,
+        PrecioSinPromocion: data.PrecioSinPromocion,
+        Promocion: data.Promocion,
+        Proveedor: data.Proveedor,
+        SubTotalMN: data.SubTotalMN,
+        SubTotalUSD: data.SubTotalUSD,
+        TiempoEntrega: data.TiempoEntrega,
+        Unidad: data.Unidad,
+        Descripcion: data.Descripcion,
+        Comentarios: data.Comentarios,
+      };
+    });
+
+    setPartidasData(partidas);
+  }
 
   async function saveAllRowsToFirestore(rows: any, projectId: string) {
     const db = getFirestore();
@@ -108,12 +156,23 @@ function EditToolbar(props: EditToolbarProps) {
       "Partidas"
     );
 
+    console.log("Rows:");
+    console.log(rows);
+
     for (const row of rows) {
       const { id, isNew, ...rowData } = row;
+
+      console.log("Current row:");
+      console.log(row);
+      console.log("Row data:");
+      console.log(rowData);
+
       if (isNew) {
         await addDoc(projectPartidasCollection, rowData);
       } else {
         const docRef = doc(db, "Proyectos", projectId, "Partidas", id);
+        console.log("rowData");
+        console.log(rowData);
         await updateDoc(docRef, rowData);
       }
     }
@@ -123,7 +182,7 @@ function EditToolbar(props: EditToolbarProps) {
   }
 
   async function refreshData() {
-    // Add your data refresh logic here if needed
+    await fetchData();
   }
 
   const handleClick = () => {
@@ -167,7 +226,7 @@ function EditToolbar(props: EditToolbarProps) {
       <Button
         color="primary"
         startIcon={<SaveIcon />}
-        onClick={(event) => saveAllRowsToFirestore(partidas, projectId)}
+        onClick={(event) => saveAllRowsToFirestore(partidasData, projectId)}
       >
         Save
       </Button>
@@ -175,67 +234,83 @@ function EditToolbar(props: EditToolbarProps) {
   );
 }
 
-export default function FullFeaturedCrudGrid() {
+interface FullFeaturedCrudGridProps {
+  projectId: string;
+}
+
+export default function FullFeaturedCrudGrid({
+  projectId,
+}: FullFeaturedCrudGridProps) {
+  // ...
+
   const [projects, setProjects] = React.useState<Proyecto[]>([]);
   const [partidas, setPartidas] = React.useState<Partidas[]>([]);
-  const [rows, setRows] = React.useState<ExtendedGridRowModel[]>([]);
+  const [rows, setRows] = React.useState<ExtendedPartidas[]>([]);
+
+  const [partidasData, setPartidasData] = React.useState<Partidas[]>([]);
   const [rowModesModel, setRowModesModel] = React.useState<GridRowModesModel>(
     {}
   );
-  const [projectId, setProjectId] = React.useState("");
 
   useEffect(() => {
-    async function fetchData() {
-      const db = getFirestore(firebaseConfig.firebase);
-      const querySnapshot = await getDocs(collection(db, "Proyectos"));
-
-      const proyectosData = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const projectId = doc.id;
-
-        const partidasRef = collection(doc.ref, "Partidas");
-
-        return {
-          Id: projectId,
-          Celular: data.Celular,
-          DiasCredito: data.DiasCredito,
-          Direccion: data.Direccion,
-          DireccionEntrega: data.DireccionEntrega,
-          Email: data.Email,
-          FechaCreacion: data.FechaCreacion,
-          Nombre: data.Nombre,
-          NombreContacto: data.NombreContacto,
-          RFC: data.RFC,
-          Partidas: partidasRef,
-        };
-      });
-
-      setProjects(proyectosData);
-      if (proyectosData.length > 0) {
-        setProjectId(proyectosData[0].Id); // Set the first project id as the current one
-      }
-    }
     fetchData();
   }, []);
 
+  async function fetchData() {
+    const db = getFirestore();
+    const projectPartidasCollection = collection(
+      db,
+      "Proyectos",
+      projectId,
+      "Partidas"
+    );
+
+    const querySnapshot = await getDocs(projectPartidasCollection);
+    const partidas = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+
+      return {
+        id: doc.id,
+        Id: data.Id,
+        Cantidad: data.Cantidad,
+        CostoEnvio: data.CostoEnvio,
+        CostoImporte: data.CostoImporte,
+        CostoImporteUSD: data.CostoImporteUSD,
+        FechaTermino: data.FechaTermino,
+        NumeroDeParte: data.NumeroDeParte,
+        PUCostoMX: data.PUCostoMX,
+        PUCostoUSD: data.PUCostoUSD,
+        PUMX: data.PUMX,
+        PUUSD: data.PUUSD,
+        PrecioSinPromocion: data.PrecioSinPromocion,
+        Promocion: data.Promocion,
+        Proveedor: data.Proveedor,
+        SubTotalMN: data.SubTotalMN,
+        SubTotalUSD: data.SubTotalUSD,
+        TiempoEntrega: data.TiempoEntrega,
+        Unidad: data.Unidad,
+        Descripcion: data.Descripcion,
+        Comentarios: data.Comentarios,
+      };
+    });
+
+    setPartidasData(partidas);
+  }
+
   useEffect(() => {
     async function fetchData() {
       const db = getFirestore(firebaseConfig.firebase);
-      const proyectosCollection = collection(db, "Proyectos");
-      const querySnapshot = await getDocs(proyectosCollection);
-  
-      const partidasData: Partidas[] = [];
-  
-      for (const doc of querySnapshot.docs) {
-        const proyectoRef = doc.ref;
-        const partidasCollection = collection(proyectoRef, "Partidas");
-        const partidasSnapshot = await getDocs(partidasCollection);
-  
-        partidasSnapshot.forEach((partidaDoc) => {
+      const projectRef = doc(db, "Proyectos", projectId);
+      const partidasCollection = collection(projectRef, "Partidas");
+      const partidasSnapshot = await getDocs(partidasCollection);
+
+      const partidasData: Partidas[] = partidasSnapshot.docs.map(
+        (partidaDoc) => {
           const data = partidaDoc.data();
           const partidaId = partidaDoc.id;
-  
-          partidasData.push({
+
+          return {
+            id: partidaId,
             Id: partidaId,
             Cantidad: data.Cantidad,
             CostoEnvio: data.CostoEnvio,
@@ -247,7 +322,7 @@ export default function FullFeaturedCrudGrid() {
             PUCostoUSD: data.PUCostoUSD,
             PUMX: data.PUMX,
             PUUSD: data.PUUSD,
-            PrecioSinPromoción: data.PrecioSinPromoción,
+            PrecioSinPromocion: data.PrecioSinPromocion,
             Promocion: data.Promocion,
             Proveedor: data.Proveedor,
             SubTotalMN: data.SubTotalMN,
@@ -256,16 +331,18 @@ export default function FullFeaturedCrudGrid() {
             Unidad: data.Unidad,
             Descripcion: data.Descripcion,
             Comentarios: data.Comentarios,
-          });
-        });
-      }
-  
+          };
+        }
+      );
+
       setPartidas(partidasData);
+      setRows(partidasData.map((partida) => ({ ...partida, isNew: false })));
     }
-  
-    fetchData();
-  }, []);
-  
+
+    if (projectId) {
+      fetchData();
+    }
+  }, [projectId]);
 
   const handleRowEditStart = (
     params: GridRowParams,
@@ -305,14 +382,19 @@ export default function FullFeaturedCrudGrid() {
     }
   };
 
-  const processRowUpdate = (newRow: ExtendedGridRowModel) => {
-    const updatedRow = { ...newRow, isNew: false };
+  const processRowUpdate = (
+    newRow: ExtendedPartidas,
+    oldRow: ExtendedPartidas
+  ) => {
+    const updatedRow: ExtendedPartidas = { ...newRow, isNew: false };
     setRows(rows.map((row) => (row.Id === newRow.Id ? updatedRow : row)));
     return updatedRow;
   };
 
-  const handleRowModesModelChange = (newRowModesModel: GridRowModesModel) => {
-    setRowModesModel(newRowModesModel);
+  const handleRowModesModelChange = (
+    newModel: React.SetStateAction<GridRowModesModel>
+  ) => {
+    setRowModesModel(newModel);
   };
 
   console.log(projects);
@@ -371,21 +453,26 @@ export default function FullFeaturedCrudGrid() {
     { field: "Proveedor", headerName: "Proveedor", width: 150, editable: true },
     {
       field: "Promocion",
-      headerName: "Promoción",
+      headerName: "Promocion",
       width: 120,
       type: "boolean",
       editable: true,
     },
     {
       field: "FechaTermino",
-      headerName: "Fecha de término",
-      width: 150,
+      headerName: "Fecha de Termino",
       type: "date",
-      editable: true,
+      width: 200,
+      valueGetter: (params) => {
+        if (params.row.FechaTermino) {
+          return new Date(params.row.FechaTermino.seconds * 1000);
+        }
+        return null;
+      },
     },
     {
       field: "PrecioSinPromocion",
-      headerName: "Precio sin promoción",
+      headerName: "Precio sin promocion",
       type: "number",
       width: 150,
       editable: true,
@@ -400,41 +487,6 @@ export default function FullFeaturedCrudGrid() {
       field: "TiempoEntrega",
       headerName: "Tiempo de entrega",
       width: 150,
-      editable: true,
-    },
-    {
-      field: "Utilidad",
-      headerName: "Utilidad",
-      type: "number",
-      width: 120,
-      editable: true,
-    },
-    {
-      field: "ManoDeObra",
-      headerName: "Mano de Obra",
-      type: "number",
-      width: 150,
-      editable: true,
-    },
-    {
-      field: "Indirect",
-      headerName: "Indirect",
-      type: "number",
-      width: 120,
-      editable: true,
-    },
-    {
-      field: "Maqui",
-      headerName: "Maqui",
-      type: "number",
-      width: 100,
-      editable: true,
-    },
-    {
-      field: "Finan",
-      headerName: "Finan",
-      type: "number",
-      width: 100,
       editable: true,
     },
     {
@@ -524,7 +576,7 @@ export default function FullFeaturedCrudGrid() {
     >
       {rows && (
         <DataGridPro
-          rows={rows}
+          rows={partidasData}
           columns={columns}
           editMode="row"
           rowModesModel={rowModesModel}
@@ -541,7 +593,8 @@ export default function FullFeaturedCrudGrid() {
               setRowModesModel,
               projectId,
               partidas,
-              setProjectId,
+              setPartidasData,
+              partidasData
             },
           }}
         />
