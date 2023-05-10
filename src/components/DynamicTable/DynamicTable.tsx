@@ -92,12 +92,12 @@ interface EditToolbarProps {
   setRowModesModel: (
     newModel: (oldModel: GridRowModesModel) => GridRowModesModel
   ) => void;
-  projects: any;
+  partidas: any;
   projectId: string;
 }
 
 function EditToolbar(props: EditToolbarProps) {
-  const { setRows, setRowModesModel, projectId, projects } = props;
+  const { setRows, setRowModesModel, projectId, partidas } = props;
 
   async function saveAllRowsToFirestore(rows: any, projectId: string) {
     const db = getFirestore();
@@ -167,7 +167,7 @@ function EditToolbar(props: EditToolbarProps) {
       <Button
         color="primary"
         startIcon={<SaveIcon />}
-        onClick={(event) => saveAllRowsToFirestore(projects, projectId)}
+        onClick={(event) => saveAllRowsToFirestore(partidas, projectId)}
       >
         Save
       </Button>
