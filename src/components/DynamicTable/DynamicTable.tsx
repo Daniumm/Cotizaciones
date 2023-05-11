@@ -99,8 +99,14 @@ interface EditToolbarProps {
 }
 
 function EditToolbar(props: EditToolbarProps) {
-  const { setRows, setRowModesModel, projectId, partidas, partidasData, setPartidasData } =
-    props;
+  const {
+    setRows,
+    setRowModesModel,
+    projectId,
+    partidas,
+    partidasData,
+    setPartidasData,
+  } = props;
 
   useEffect(() => {
     fetchData();
@@ -173,7 +179,7 @@ function EditToolbar(props: EditToolbarProps) {
         const docRef = doc(db, "Proyectos", projectId, "Partidas", id);
         console.log("rowData");
         console.log(rowData);
-        await updateDoc(docRef, rowData);
+        await updateDoc(docRef, rowData); // Update the document without the id property
       }
     }
 
@@ -187,10 +193,21 @@ function EditToolbar(props: EditToolbarProps) {
 
   const handleClick = () => {
     const id = uuidv4();
+    const Id = uuidv4();
+
+    saveAllRowsToFirestore(partidasData, projectId)
+      .then(() => {
+        refreshData();
+      })
+      .catch((error) => {
+        console.error("Error saving data: ", error);
+      });
+
     setRows((oldRows) => [
       ...oldRows,
       {
-        id,
+        id: uuidv4(),
+        Id: uuidv4(),
         Partida: "",
         Descripcion: "",
         Unidad: "",
@@ -594,7 +611,7 @@ export default function FullFeaturedCrudGrid({
               projectId,
               partidas,
               setPartidasData,
-              partidasData
+              partidasData,
             },
           }}
         />
